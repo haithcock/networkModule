@@ -4,7 +4,7 @@ import os
 import socket
 import threading
 
-BUF = 64 * 1024  # 64KB chunks
+BUF = 64 * 1024
 
 
 def send_json(sock: socket.socket, obj: dict) -> None:
@@ -20,11 +20,11 @@ def recv_json_line(sock_file) -> dict:
 
 
 def safe_shared_path(shared_dir: str, name: str) -> str | None:
-    # Only allow plain filenames that exist in shared_dir (prevents ../../etc/passwd)
+    #Only allow plain filenames that exist in shared_dir (prevents ../../etc/passwd)
     if not name or os.path.basename(name) != name:
         return None
     path = os.path.join(shared_dir, name)
-    # Ensure it stays inside shared_dir
+    #This will ensure it stays inside shared_dir
     shared_real = os.path.realpath(shared_dir)
     path_real = os.path.realpath(path)
     if not path_real.startswith(shared_real + os.sep) and path_real != shared_real:
@@ -40,7 +40,9 @@ def list_files(shared_dir: str):
             try:
                 files.append({"name": entry, "size": os.path.getsize(p)})
             except OSError:
-                # If stat fails, skip
+               
+               
+                #This skips if stat fails
                 pass
     files.sort(key=lambda x: x["name"].lower())
     return files
@@ -49,7 +51,9 @@ def list_files(shared_dir: str):
 def handle_connection(conn: socket.socket, addr, shared_dir: str):
     try:
         conn_file = conn.makefile("rwb", buffering=0)
-        # Read exactly one request, respond, then close (keeps it simple)
+        #Read exactly one request
+        #Responds 
+        #then closes
         req = recv_json_line(conn_file)
 
         rtype = req.get("type", "").upper()
@@ -83,9 +87,9 @@ def handle_connection(conn: socket.socket, addr, shared_dir: str):
                 return
             try:
                 size = os.path.getsize(path)
-                # Send header first
+                
                 send_json(conn, {"type": "GET_OK", "name": name, "size": size})
-                # Then send raw bytes
+                #Sends a header andhen send raw bytes
                 with open(path, "rb") as f:
                     while True:
                         chunk = f.read(BUF)
@@ -105,7 +109,7 @@ def handle_connection(conn: socket.socket, addr, shared_dir: str):
         except Exception:
             pass
     except Exception:
-        # Keep server stable; don't crash on unexpected client behavior
+        #lil error handling
         try:
             send_json(conn, {"type": "ERROR", "code": "SERVER_ERROR", "message": "Server error"})
         except Exception:
@@ -176,7 +180,7 @@ def main():
     os.makedirs(shared_dir, exist_ok=True)
     os.makedirs(downloads_dir, exist_ok=True)
 
-    # Start server thread
+     #starts server threa
     t = threading.Thread(target=server_loop, args=(args.host, args.port, shared_dir), daemon=True)
     t.start()
 
